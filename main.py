@@ -16,6 +16,7 @@ inclusion_depth = 0
 roots = []
 all_roots = False
 
+
 def main():
     global roots
 
@@ -101,7 +102,7 @@ def fill_ref(match):
     refs = match[1].split('|') if isinstance(match, Match) else match.split('|')
 
     if len(refs) == 1:
-        return choice(lists[refs[0]])
+        return check_options(refs[0])
 
     ref = choice(refs)
 
@@ -109,6 +110,25 @@ def fill_ref(match):
         return ref
 
     return fill_ref(ref.strip("[]"))
+
+
+identifiers = {}
+
+
+def check_options(ref):
+    args = ref.split(',')
+    
+    if args[0][0] == '#':
+        if (element := identifiers.get(args[0][1:])) is None:
+            element = args[0]
+    else:
+        element = choice(lists[args[0]])
+
+    for arg in args[1:]:
+        if arg[0] == '#':
+            identifiers[arg[1:]] = element
+
+    return element
 
 
 if __name__ == "__main__":

@@ -1,0 +1,46 @@
+$name : My Generator
+$author : Author
+$description : Description of my generator
+$picture : http://.../pic.png
+$amount : 3
+$button : Another!
+
+$all roots
+
+$include http://gratecraft.org:8081/inclusion.txt
+
+$+animal
+cat
+dog
+fish {20%}
+
+$>animal
+
+$fruit
+banana
+lemon
+lime
+
+$vegetable
+celery
+potato
+carrot
+
+$candy
+Hi-Chew
+Dove Chocolate
+mint
+
+$pet_name
+spot
+dingo
+rufus
+
+$phrase
+My pet is a [animal].
+I am feeding my [animal].
+I own a [animal].
+I need a quick random [word|term|thing to say].
+I am eating a [[fruit]|[vegetable]|[candy]].
+My pet is a [animal,#pet]. I've always wanted a [#pet].
+My [#pet]'s name is [pet_name,#name,written]. Would you like to see [#name]?

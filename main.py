@@ -1,6 +1,6 @@
 from os import remove
-from random import choice, randint
-from re import Match, search, sub
+from random import choice, choices, randint
+from re import escape, Match, search, sub
 from requests import get
 from sys import argv
 
@@ -15,10 +15,11 @@ global_settings = {"name": None,
 inclusion_depth = 0
 roots = []
 all_roots = False
+weights = []
 
 
 def main():
-    global roots
+    global roots, weights
 
     root = parse_file(argv[1])
     roots.append(root)
@@ -33,7 +34,70 @@ def main():
             return
 
     for _ in range(int(global_settings["amount"])):
-        print(sub(r"\[(.+)\]", fill_ref, choice(lists[root])))
+        print(replace_elements(choices(lists[root], weights=[i["chance"] for i in lists[root]])[0]["element"]))
+
+
+def replace_elements(string):
+    elements = []
+    i = 0
+
+    while i < len(string):
+        if string[i] != '[':
+            i += 1
+            continue
+
+        depth = 0
+
+        for j in range(i + 1, len(string)):
+            if string[j] == '[':
+                depth += 1
+            elif string[j] == ']':
+                depth -= 1
+                if depth < 0:
+                    elements.append(string[i:j + 1])
+                    i = j + 1
+                    break
+
+    for element in elements:
+        string = sub(escape(element), fill_ref, string, count=1)
+
+    return string
+
+
+def fill_ref(match):
+    match = match[0] if isinstance(match, Match) else match
+    match = match[1:] if match[0] == '[' else match
+    match = match[:-1] if match[-1] == ']' else match
+    refs = match.split('|')
+
+    if len(refs) == 1:
+        return check_options(refs[0])
+
+    ref = choice(refs)
+
+    if ref[0] != '[':
+        return ref
+
+    return fill_ref(ref.strip("[]"))
+
+
+identifiers = {}
+
+
+def check_options(ref):
+    args = ref.split(',')
+
+    if args[0][0] == '#':
+        if (element := identifiers.get(args[0][1:])) is None:
+            element = args[0]
+    else:
+        element = choices(lists[args[0]], weights=[i["chance"] for i in lists[args[0]]])[0]["element"]
+
+    for arg in args[1:]:
+        if arg[0] == '#':
+            identifiers[arg[1:]] = element
+
+    return element
 
 
 def parse_file(filename):
@@ -65,13 +129,12 @@ def parse_file(filename):
                     current_list = ref
             
             elif current_list is not None:
-                if (match := search(r"\{(\d+)%\}", line)):
-                    if randint(1, 100) > int(match[1]):
-                        continue
-                    
+                if match := search(r"\{(\d+)%\}", line):
                     line = line[:match.start()]
-                        
-                lists[current_list].append(line.strip())
+
+                append_dict = {"element": line.strip(), "attrs": {}, "chance": 100}
+
+                lists[current_list].append(append_dict)
 
     return current_list
 
@@ -96,39 +159,6 @@ def get_inclusion(arg):
             inclusion_depth -= 1
         else:
             print(f"Error, could not fetch file at: {arg}\n")
-
-
-def fill_ref(match):
-    refs = match[1].split('|') if isinstance(match, Match) else match.split('|')
-
-    if len(refs) == 1:
-        return check_options(refs[0])
-
-    ref = choice(refs)
-
-    if ref[0] != '[':
-        return ref
-
-    return fill_ref(ref.strip("[]"))
-
-
-identifiers = {}
-
-
-def check_options(ref):
-    args = ref.split(',')
-    
-    if args[0][0] == '#':
-        if (element := identifiers.get(args[0][1:])) is None:
-            element = args[0]
-    else:
-        element = choice(lists[args[0]])
-
-    for arg in args[1:]:
-        if arg[0] == '#':
-            identifiers[arg[1:]] = element
-
-    return element
 
 
 if __name__ == "__main__":

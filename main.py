@@ -1,5 +1,5 @@
 from os import remove
-from random import choice, choices, randint
+from random import choice, choices
 from re import escape, findall, Match, search, sub
 from requests import get
 from sys import argv
@@ -84,21 +84,32 @@ def fill_ref(match):
 
 
 def check_options(ref):
-    args = ref.split(',')
-
-    if args[0][0] == '#':
-        if (element := identifiers.get(args[0][1:])) is None:
-            element = args[0]
+    if ref[0] == '#':
+        if (match := search(r"\A#([^,]+)\Z", ref)):
+            if (element := identifiers.get(match[1])) is None:
+                element = ref
+            else:
+                element = element["element"]
+        elif match := search(r"\A#([^,]+), *as ([\w]+)\Z", ref):
+            if (element := identifiers.get(match[1])) is None:
+                element = ref
+            elif (element := element["attrs"].get(match[2])) is None:
+                element = ref
+        elif match := search(r"\A#([^,]+), *as (\w+), *or (\w+)", ref):
+            if (element := identifiers.get(match[1])) is None:
+                element = ref
+            elif (element := element["attrs"].get(match[2])) is None:
+                element = match[3]
+        else:
+            element = ref
     else:
-        element = choices(lists[args[0]], weights=[i["chance"] for i in lists[args[0]]])[0]["element"]
+        if match := search(r"\A(\w+), *#(\w+)", ref):
+            element = choices(lists[match[1]], weights=[i["chance"] for i in lists[match[1]]])[0]
+            identifiers[match[2]] = element
+        else:
+            element = choices(lists[ref], weights=[i["chance"] for i in lists[ref]])[0]            
 
-    for arg in args[1:]:
-        if arg[0] == '#':
-            identifiers[arg[1:]] = element
-        elif arg[0] == 'a' and arg[1] == 's':
-            
-
-    return element
+    return element if isinstance(element, str) else element["element"]
 
 
 def parse_file(filename):

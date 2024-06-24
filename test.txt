@@ -10,9 +10,10 @@ $all roots
 $include http://gratecraft.org:8081/inclusion.txt
 
 $+animal
-cat
-dog
-fish {20%}
+cat {action:meows}
+dog {action:barks}
+fish {20%} {action:swims}
+pig
 
 $>animal
 
@@ -44,3 +45,5 @@ I need a quick random [word|term|thing to say].
 I am eating a [[fruit]|[vegetable]|[candy]].
 My pet is a [animal,#pet]. I've always wanted a [#pet].
 My [#pet]'s name is [pet_name,#name,written]. Would you like to see [#name]?
+I have a [animal,#pet]. My [#pet] is [#pet,as action].
+My [animal,#pet] is [#pet,as action,or sleeping].

@@ -1,6 +1,6 @@
 from os import remove
 from random import choice, choices, randint
-from re import escape, Match, search, sub
+from re import escape, findall, Match, search, sub
 from requests import get
 from sys import argv
 
@@ -16,10 +16,11 @@ inclusion_depth = 0
 roots = []
 all_roots = False
 weights = []
+identifiers = {}
 
 
 def main():
-    global roots, weights
+    global identifiers, roots, weights
 
     root = parse_file(argv[1])
     roots.append(root)
@@ -34,6 +35,7 @@ def main():
             return
 
     for _ in range(int(global_settings["amount"])):
+        identifiers = {}
         print(replace_elements(choices(lists[root], weights=[i["chance"] for i in lists[root]])[0]["element"]))
 
 
@@ -81,9 +83,6 @@ def fill_ref(match):
     return fill_ref(ref.strip("[]"))
 
 
-identifiers = {}
-
-
 def check_options(ref):
     args = ref.split(',')
 
@@ -96,6 +95,8 @@ def check_options(ref):
     for arg in args[1:]:
         if arg[0] == '#':
             identifiers[arg[1:]] = element
+        elif arg[0] == 'a' and arg[1] == 's':
+            
 
     return element
 
@@ -129,10 +130,17 @@ def parse_file(filename):
                     current_list = ref
             
             elif current_list is not None:
-                if match := search(r"\{(\d+)%\}", line):
+                attrs = {i: j for i, j in findall(r"{(\w+)\s?:\s?([\w ]+)}", line)}
+
+                if match := search(r"{(\d+)%}", line):
+                    chance = int(match[1])
+                else:
+                    chance = 100
+
+                if match := search(r"{.*}", line):
                     line = line[:match.start()]
 
-                append_dict = {"element": line.strip(), "attrs": {}, "chance": 100}
+                append_dict = {"element": line.strip(), "attrs": attrs, "chance": chance}
 
                 lists[current_list].append(append_dict)
 

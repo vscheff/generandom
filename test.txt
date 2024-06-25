@@ -37,6 +37,15 @@ spot
 dingo
 rufus
 
+$templates
+Look at my %1.
+I love my %1 and my %2.
+
+$random syllable
+fry
+we
+hi
+
 $phrase
 My pet is a [animal].
 I am feeding my [animal].
@@ -47,3 +56,8 @@ My pet is a [animal,#pet]. I've always wanted a [#pet].
 My [#pet]'s name is [pet_name,#name,written]. Would you like to see [#name]?
 I have a [animal,#pet]. My [#pet] is [#pet,as action].
 My [animal,#pet] is [#pet,as action,or sleeping].
+[templates,%[cat|dog],%[wife|husband|kids]]
+There are [100-10000] leaves here.
+
+$test
+My name is [random syllable,x2-6].

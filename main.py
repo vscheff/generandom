@@ -1,6 +1,6 @@
 from os import remove
-from random import choice, choices
-from re import escape, findall, Match, search, sub
+from random import choice, choices, randint
+import re
 from requests import get
 from sys import argv
 
@@ -61,19 +61,26 @@ def replace_elements(string):
                     break
 
     for element in elements:
-        string = sub(escape(element), fill_ref, string, count=1)
+        string = re.sub(re.escape(element), fill_ref, string, count=1)
 
     return string
 
 
 def fill_ref(match):
-    match = match[0] if isinstance(match, Match) else match
+    match = match[0] if isinstance(match, re.Match) else match
     match = match[1:] if match[0] == '[' else match
     match = match[:-1] if match[-1] == ']' else match
+
+    if re.search(r"\w+, *%\[[\w|\[\]]+]", match):
+        return handle_template(match)
+
+    if result := re.search(r"\A(\d+) *- *(\d+)", match):
+        return str(randint(int(result[1]), int(result[2])))
+
     refs = match.split('|')
 
     if len(refs) == 1:
-        return check_options(refs[0])
+        return ' ' if refs[0] == ' ' else check_options(refs[0])
 
     ref = choice(refs)
 
@@ -83,19 +90,31 @@ def fill_ref(match):
     return fill_ref(ref.strip("[]"))
 
 
+def handle_template(match):
+    args = [i.strip(',') for i in re.split('%', match)]
+    element = choices(lists[args[0]], weights=[i["chance"] for i in lists[args[0]]])[0]
+    template = element["element"]
+
+    i = 1
+    while template.find(f"%{i}") != -1 and i < len(args):
+        template = template.replace(f"%{i}", fill_ref(args[i]))
+        i += 1
+
+    return template
+
 def check_options(ref):
     if ref[0] == '#':
-        if (match := search(r"\A#([^,]+)\Z", ref)):
+        if match := re.search(r"\A#([^,]+)\Z", ref):
             if (element := identifiers.get(match[1])) is None:
                 element = ref
             else:
                 element = element["element"]
-        elif match := search(r"\A#([^,]+), *as ([\w]+)\Z", ref):
+        elif match := re.search(r"\A#([^,]+), *as ([\w]+)\Z", ref):
             if (element := identifiers.get(match[1])) is None:
                 element = ref
             elif (element := element["attrs"].get(match[2])) is None:
                 element = ref
-        elif match := search(r"\A#([^,]+), *as (\w+), *or (\w+)", ref):
+        elif match := re.search(r"\A#([^,]+), *as (\w+), *or (\w+)", ref):
             if (element := identifiers.get(match[1])) is None:
                 element = ref
             elif (element := element["attrs"].get(match[2])) is None:
@@ -103,13 +122,17 @@ def check_options(ref):
         else:
             element = ref
     else:
-        if match := search(r"\A(\w+), *#(\w+)", ref):
+        if match := re.search(r"\A([\w ]+), *#(\w+)", ref):
             element = choices(lists[match[1]], weights=[i["chance"] for i in lists[match[1]]])[0]
             identifiers[match[2]] = element
+        elif match := re.search(r"\A([\w ]+), *x(\d+) *- *(\d+)", ref):
+            k = randint(int(match[2]), int(match[3]))
+            elements = choices(lists[match[1]], weights=[i["chance"] for i in lists[match[1]]], k=k)
+            element = ''.join(replace_elements(i["element"]) for i in elements)
         else:
-            element = choices(lists[ref], weights=[i["chance"] for i in lists[ref]])[0]            
+            element = choices(lists[ref], weights=[i["chance"] for i in lists[ref]])[0]
 
-    return element if isinstance(element, str) else element["element"]
+    return element["element"] if isinstance(element, dict) else element
 
 
 def parse_file(filename):
@@ -141,14 +164,14 @@ def parse_file(filename):
                     current_list = ref
             
             elif current_list is not None:
-                attrs = {i: j for i, j in findall(r"{(\w+)\s?:\s?([\w ]+)}", line)}
+                attrs = {i: j for i, j in re.findall(r"{(\w+)\s?:\s?([\w ]+)}", line)}
 
-                if match := search(r"{(\d+)%}", line):
+                if match := re.search(r"{(\d+)%}", line):
                     chance = int(match[1])
                 else:
                     chance = 100
 
-                if match := search(r"{.*}", line):
+                if match := re.search(r"{.*}", line):
                     line = line[:match.start()]
 
                 append_dict = {"element": line.strip(), "attrs": attrs, "chance": chance}
@@ -161,9 +184,9 @@ def parse_file(filename):
 def get_inclusion(arg):
     global inclusion_depth
 
-    if search(r"(?i)\b((?:https?://|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|"
-              r"(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'\".,<>?«»“”‘’]))",
-              arg):
+    if re.search(r"(?i)\b((?:https?://|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|"
+                 r"(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'\".,<>?«»“”‘’]))",
+                 arg):
         response = get(arg)
 
         if response.status_code == 200:

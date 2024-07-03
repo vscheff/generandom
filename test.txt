@@ -46,6 +46,28 @@ fry
 we
 hi
 
+$word
+this
+is
+a
+word
+abcdefghi
+
+$book name
+Harry Potter
+the lord of the rings
+Your mothers House
+
+$movie name
+Harry Potter
+Star Wars: A new Hope
+birdemic
+
+$statement
+this is a statement
+the statement contains spaces
+perhaps there's a way to remove the spaces?
+
 $phrase
 My pet is a [animal].
 I am feeding my [animal].
@@ -58,6 +80,11 @@ I have a [animal,#pet]. My [#pet] is [#pet,as action].
 My [animal,#pet] is [#pet,as action,or sleeping].
 [templates,%[cat|dog],%[wife|husband|kids]]
 There are [100-10000] leaves here.
-
-$test
 My name is [random syllable,x2-6].
+There is [an] [word].
+Look at all the [animal][s]!
+The book's cover reads "[book name,title]".
+Look at my [animal]. Look At My [Animal]. LOOK AT MY [ANIMAL]!!!
+hey let's go see [movie name,lower]
+(talking fast) [statement,compress]!
+[word,first part]...[word,middle part]...[word,last part]

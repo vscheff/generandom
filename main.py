@@ -61,7 +61,18 @@ def replace_elements(string):
                     break
 
     for element in elements:
+        if element.lower() in ("[an]", "[s]"):
+            continue
+
         string = re.sub(re.escape(element), fill_ref, string, count=1)
+
+    string = re.sub(r"\[([aA]n)] ([aAeEiIoOuU])", r"\1 \2", string)
+    string = re.sub(r"\[([aA])n]", r"\1", string)
+
+    string = re.sub(r"([sxz])\[[sS]]", r"\1es", string)
+    string = re.sub(r"([^aeioudgkprt]h)\[[sS]]", r"\1es", string)
+    string = re.sub(r"([aeiou])y\[[sS]]", r"\1ies", string)
+    string = re.sub(r"(\w+)\[[sS]]", r"\1s", string)
 
     return string
 
@@ -102,7 +113,12 @@ def handle_template(match):
 
     return template
 
+
 def check_options(ref):
+    all_cap = ref.isupper()
+    capital = ref[0].isupper()
+    ref = ref.lower()
+
     if ref[0] == '#':
         if match := re.search(r"\A#([^,]+)\Z", ref):
             if (element := identifiers.get(match[1])) is None:
@@ -125,15 +141,39 @@ def check_options(ref):
         if match := re.search(r"\A([\w ]+), *#(\w+)", ref):
             element = choices(lists[match[1]], weights=[i["chance"] for i in lists[match[1]]])[0]
             identifiers[match[2]] = element
+            element = replace_elements(element["element"])
         elif match := re.search(r"\A([\w ]+), *x(\d+) *- *(\d+)", ref):
             k = randint(int(match[2]), int(match[3]))
             elements = choices(lists[match[1]], weights=[i["chance"] for i in lists[match[1]]], k=k)
             element = ''.join(replace_elements(i["element"]) for i in elements)
+        elif match := re.search(r"\A([\w ]+), *title", ref):
+            element = get_element(match[1]).title()
+        elif match := re.search(r"\A([\w ]+), *lower", ref):
+            element = get_element(match[1]).lower()
+        elif match := re.search(r"\A([\w ]+), *compress", ref):
+            element = get_element(match[1]).replace(' ', '')
+        elif match := re.search(r"\A([\w ]+), *(first|middle|last) part", ref):
+            element = get_element(match[1])
+            if match[2] == "first":
+                element = element[:len(element) // 3]
+            elif match[2] == "middle":
+                element = element[len(element) // 3: 2 * len(element) // 3]
+            else:
+                element = element[2 * len(element) // 3:]
         else:
-            element = choices(lists[ref], weights=[i["chance"] for i in lists[ref]])[0]
+            element = get_element(ref)
 
-    return element["element"] if isinstance(element, dict) else element
+    if all_cap:
+        return element.upper()
 
+    if capital:
+        return element.capitalize()
+
+    return element
+
+
+def get_element(ref):
+    return replace_elements(choices(lists[ref], weights=[i["chance"] for i in lists[ref]])[0]["element"])
 
 def parse_file(filename):
     global all_roots
